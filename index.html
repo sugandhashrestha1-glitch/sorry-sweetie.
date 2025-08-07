@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protected Slideshow</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0; padding: 0;
+    }
+    body, html {
+      width: 100%; height: 100%; overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #000; color: #fff;
+    }
+    #password-screen {
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      height: 100vh; background: #111;
+    }
+    #password-screen input {
+      padding: 12px; font-size: 1rem;
+      border: none; border-radius: 5px;
+      margin-bottom: 10px; width: 80%; max-width: 300px;
+    }
+    #password-screen button {
+      padding: 10px 20px; font-size: 1rem;
+      background-color: #333; color: white;
+      border: none; border-radius: 5px;
+      cursor: pointer;
+    }
+    #slideshow {
+      display: none;
+      position: relative; width: 100vw; height: 100vh;
+      overflow: hidden;
+    }
+    .slide {
+      display: none; position: absolute; width: 100%; height: 100%;
+      background: #000; transition: opacity 1s ease-in-out; color: #fff;
+    }
+    .slide.active {
+      display: block; position: relative;
+    }
+    /* Slide 1 */
+    .slide-content {
+      width: 100%; height: 100%; position: relative;
+    }
+    .gif-sticker {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(1.2);
+      width: 200px; transition: all 1s ease-in-out;
+      z-index: 1; opacity: 1;
+    }
+    .gif-sticker.animate {
+      transform: translate(-90%, -50%) scale(0.8);
+    }
+    .gif-sticker.hidden {
+      opacity: 0; pointer-events: none;
+    }
+    .text-bubble {
+      position: absolute; top: 50%; left: 55%;
+      transform: translateY(-50%);
+      opacity: 0; padding: 15px 20px;
+      background: #fff; color: #000; border-radius: 20px;
+      font-size: 1.5rem; min-width: 180px; max-width: 70%;
+      box-shadow: 0 0 15px rgba(255,255,255,0.2);
+      z-index: 2; transition: opacity 1s ease;
+    }
+    .text-bubble::after {
+      content: '';
+      position: absolute; left: -20px; top: 50%;
+      transform: translateY(-50%);
+      border: 10px solid transparent; border-right-color: #fff;
+    }
+    .text-bubble.show {
+      opacity: 1;
+    }
+    .typing-text span {
+      display: inline-block; opacity: 0;
+      animation: typing 0.6s forwards;
+    }
+    @keyframes typing {
+      0% {opacity: 0;}
+      100% {opacity: 1;}
+    }
+    #frogSticker {
+      position: absolute; top: 50%; left: 50%;
+      width: 280px; height: auto;
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0; transition: all 0.6s ease;
+      z-index: 3;
+    }
+    #finalContainer {
+      position: absolute; top: 50%; left: 38%;
+      transform: translateY(-50%);
+      display: flex; align-items: center; gap: 15px;
+      opacity: 0; transition: opacity 0.8s ease;
+      z-index: 4;
+    }
+    #finalContainer.show {
+      opacity: 1;
+    }
+    #finalBubble {
+      position: relative; padding: 15px 25px;
+      background: #fff; color: #000;
+      border-radius: 20px;
+      font-size: 1.6rem; min-width: 220px; max-width: 70%;
+    }
+    #finalBubble::after {
+      content: '';
+      position: absolute; right: -20px; top: 50%;
+      transform: translateY(-50%);
+      border: 12px solid transparent; border-left-color: #fff;
+    }
+    .typing-text.final span {
+      display: inline-block; opacity: 0;
+      animation: typing 0.6s forwards;
+    }
+    #navStickers {
+      position: absolute; bottom: 15px; width: 100%;
+      display: flex; justify-content: space-between; padding: 0 20px;
+      opacity: 0; transition: opacity 1s ease;
+      z-index: 5;
+    }
+    #navStickers.visible {
+      opacity: 1;
+    }
+    #prevBtn, #nextBtn {
+      width: 60px; height: 60px; cursor: pointer; user-select: none;
+      filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
+      transition: transform 0.3s ease;
+    }
+    #prevBtn:hover, #nextBtn:hover {
+      transform: scale(1.1);
+    }
+    #slide2 {
+      background-color: #fef6e4;
+      color: #000;
+    }
+    #blendSticker, #newSticker, #finalSlide2Sticker {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 400px; height: auto;
+      transition: opacity 1s ease;
+      cursor: pointer;
+    }
+    #blendSticker {
+      mix-blend-mode: multiply;
+      opacity: 1;
+      z-index: 2;
+      pointer-events: none;
+    }
+    #newSticker {
+      opacity: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+    #finalSlide2Sticker {
+      opacity: 0;
+      z-index: 20;
+      pointer-events: auto;
+    }
+    #slide2ChatBubble {
+      position: absolute; top: 50%; left: 36%;
+      transform: translateY(-50%);
+      padding: 10px 18px;
+      background: #fff; color: #000;
+      border-radius: 20px;
+      font-size: 1.4rem;
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+      opacity: 0;
+      pointer-events: none;
+      cursor: pointer;
+      user-select: none;
+      transition: opacity 0.4s ease;
+    }
+    #slide2ChatBubble::after {
+      content: '';
+      position: absolute;
+      top: 50%; right: -18px;
+      transform: translateY(-50%);
+      border: 8px solid transparent;
+      border-left-color: #fff;
+    }
+    #slide3 {
+      background-color: #000;
+      cursor: pointer;
+    }
+    #slide3Sticker {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 250px;
+      height: auto;
+      cursor: pointer;
+      z-index: 10;
+    }
+    #slide4 {
+      background-color: #000;
+      display: flex; justify-content: center; align-items: center;
+      color: #fff; flex-direction: column;
+    }
+    #sorryNote {
+      background: white; color: black;
+      padding: 30px 40px; max-width: 600px;
+      font-family: 'Georgia', serif;
+      font-size: 1.4rem; line-height: 1.6;
+      border-radius: 15px;
+      box-shadow: 0 0 15px rgba(255,255,255,0.3);
+      position: relative; text-align: center;
+    }
+    #sorryNote::before {
+      content: '';
+      position: absolute;
+      top: 20px; left: 20px; right: 20px; bottom: 20px;
+      border: 2px solid #000;
+      border-radius: 12px;
+      pointer-events: none;
+    }
+    #sorryNote strong {
+      display: block;
+      margin-top: 20px;
+      font-style: italic;
+      font-size: 1.2rem;
+    }
+    #navStickers4 {
+      position: absolute;
+      bottom: 15px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 0 20px;
+      opacity: 0;
+      transition: opacity 1s ease;
+      z-index: 5;
+    }
+    #navStickers4.visible {
+      opacity: 1;
+    }
+    #prevBtn4, #nextBtn4 {
+      width: 60px; height: 60px;
+      cursor: pointer;
+      user-select: none;
+      filter: drop-shadow(0 0 2px rgba(255,255,255,0.8));
+      transition: transform 0.3s ease;
+    }
+    #prevBtn4:hover, #nextBtn4:hover {
+      transform: scale(1.1);
+    }
+
+    /* Slide 5 styles */
+    #slide5 {
+      background-color: #000;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 25px;
+      font-size: 3rem;
+      font-weight: bold;
+      user-select: none;
+      cursor: default;
+    }
+    #slide5 img {
+      width: 350px; /* increased size */
+      height: auto;
+      cursor: default;
+    }
+
+    @media (max-width: 600px) {
+      #prevBtn, #nextBtn, #prevBtn4, #nextBtn4 {
+        width: 50px; height: 50px;
+      }
+      #finalBubble {
+        font-size: 1.3rem;
+        min-width: 180px;
+        padding: 12px 20px;
+      }
+      #blendSticker, #newSticker, #finalSlide2Sticker {
+        width: 280px;
+      }
+      #slide5 {
+        font-size: 2rem;
+      }
+      #slide5 img {
+        width: 250px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div id="password-screen">
+  <h2>Enter Password to View</h2>
+  <input type="password" id="passwordInput" placeholder="Enter password" />
+  <button onclick="checkPassword()">Submit</button>
+  <p id="error" style="color: red; display: none;">Incorrect password. Try again.</p>
+</div>
+
+<div class="slideshow-container" id="slideshow">
+  <div class="slide active" id="slide1">
+    <div class="slide-content">
+      <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWRxaTh0cmd4MGc3djUxNG1vaWZucDBvM3MweWt1ZWVjaW5nbzh6dSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/0eiWRdin04e0P2Qxyr/giphy.gif" alt="teddy sticker" class="gif-sticker" id="gif" />
+      <div class="text-bubble" id="bubble"><div class="typing-text" id="typing"></div></div>
+      <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMm9qem02cXdkdHY4ejM5dGZ3eHh1bGF3MTk0enNtZjg4cm1ycGZ5OCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/CZ44Nu82RxuaYdZbL3/giphy.gif" alt="frog sticker" id="frogSticker" />
+      <div id="finalContainer">
+        <div id="finalBubble"><div class="typing-text final" id="finalTyping"></div></div>
+        <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNTFqMG9xbXZxMGoxb3o3a29uOWs4MTRyM3h3enY5N3A3NGIzZmV2dCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/vrG0KwEKD7CJbTeeaH/giphy.gif" alt="gift sticker" style="width: 150px; height: auto;" />
+      </div>
+    </div>
+    <div id="navStickers">
+      <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3N2N0cGJsZnphYW96bnBoODlxajFuazhubXYxbW56NXV0ZTdqMTFtZCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/rBd4pOp6MovUeikx3V/giphy.gif" alt="previous button" id="prevBtn" style="cursor:pointer;" />
+      <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NzhlM2F1dTNkMW1tMmgyN3FhdHpyZTFjYzdoNWZ2bW90OG9nYnNxYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/xvZ9DmcH3RW7Iwsoag/giphy.gif" alt="next button" id="nextBtn" style="cursor:pointer;" />
+    </div>
+  </div>
+
+  <div class="slide" id="slide2">
+    <div class="slide-content">
+      <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExcHRhcHRmcHJrZTU2dXVmdGJyZmo5dzFpYTNwMDNuOHRuNWIwb2E5ZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/QBqTS9XBErS1rEvqyn/giphy.gif" alt="blend sticker" id="blendSticker" />
+      <img src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExa2Vsc28zcjJvZGRuNnpwY2VrMGpyczVkZDN0YWppa3R2c2Q5dzVhaCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/9o2VnVa8SA09RBex40/giphy.gif" alt="new big sticker" id="newSticker" />
+      <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3YjA2M2cyb2JvOGU1YWJ4c3lyb3d0NjZ0MXV1dDBwdDh5ZmFicmV1eSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/PPy2jw9qf18teMNEvu/giphy.gif" alt="final big sticker" id="finalSlide2Sticker" />
+      <div id="slide2ChatBubble">Click me 👉</div>
+    </div>
+  </div>
+
+  <div class="slide" id="slide3">
+    <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZzMxdWEzd2p3aXRwNXQ5ZXJzam40MGt1ZGhyNzljNzhwNzloejJmbyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/CdO2oiNZ8Z492BUWkM/giphy.gif" alt="slide3 sticker" id="slide3Sticker" />
+  </div>
+
+  <div class="slide" id="slide4">
+    <div id="sorryNote">
+      Dear Love,<br /><br />
+      I'm truly sorry for any hurt or misunderstanding. Please forgive me.<br /><br />
+      With all my heart,<br />
+      <strong>Sugandha Shrestha</strong>
+    </div>
+    <div id="navStickers4">
+      <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3N2N0cGJsZnphYW96bnBoODlxajFuazhubXYxbW56NXV0ZTdqMTFtZCZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/rBd4pOp6MovUeikx3V/giphy.gif" alt="previous button" id="prevBtn4" style="cursor:pointer;" />
+      <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3NzhlM2F1dTNkMW1tMmgyN3FhdHpyZTFjYzdoNWZ2bW90OG9nYnNxYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/xvZ9DmcH3RW7Iwsoag/giphy.gif" alt="next button" id="nextBtn4" style="cursor:pointer;" />
+    </div>
+  </div>
+
+  <div class="slide" id="slide5">
+    <div>for you</div>
+    <img src="https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3N3NoOGdmaHB0MXNvYTlvNHhlMDYwdnFzYXlobXpsZjh2cHpwY3NxOSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/jZ44syKN6NQWz78tgp/giphy.gif" alt="for you sticker" />
+  </div>
+
+</div>
+
+<script>
+  const correctPassword = "i love you";
+  const passwordInput = document.getElementById("passwordInput");
+  const slides = [...document.querySelectorAll(".slide")];
+  let currentSlide = 0;
+
+  const navStickers = document.getElementById("navStickers");
+  const navStickers4 = document.getElementById("navStickers4");
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+  const prevBtn4 = document.getElementById("prevBtn4");
+  const nextBtn4 = document.getElementById("nextBtn4");
+
+  const blendSticker = document.getElementById("blendSticker");
+  const newSticker = document.getElementById("newSticker");
+  const finalSlide2Sticker = document.getElementById("finalSlide2Sticker");
+  const slide2ChatBubble = document.getElementById("slide2ChatBubble");
+
+  const slide3Sticker = document.getElementById("slide3Sticker");
+
+  const teddy = document.getElementById("gif");
+  const bubble = document.getElementById("bubble");
+  const frog = document.getElementById("frogSticker");
+  const finalContainer = document.getElementById("finalContainer");
+  const typing = document.getElementById("typing");
+  const finalTyping = document.getElementById("finalTyping");
+
+  function checkPassword() {
+    const input = passwordInput.value;
+    if (input === correctPassword) {
+      document.getElementById("password-screen").style.display = "none";
+      document.getElementById("slideshow").style.display = "block";
+      showSlide(0);
+    } else {
+      document.getElementById("error").style.display = "block";
+    }
+  }
+
+  function showSlide(index) {
+    slides.forEach(slide => slide.classList.remove('active'));
+    currentSlide = (index + slides.length) % slides.length;
+    const slide = slides[currentSlide];
+    slide.classList.add('active');
+
+    navStickers.classList.remove('visible');
+    navStickers4.classList.remove('visible');
+    slide2ChatBubble.style.opacity = 0;
+    slide2ChatBubble.style.pointerEvents = "none";
+
+    if (currentSlide === 0) {
+      teddy.classList.remove("hidden", "animate");
+      bubble.classList.remove("show");
+      frog.style.opacity = "0";
+      frog.style.transform = "translate(-50%, -50%) scale(0)";
+      finalContainer.classList.remove("show");
+      typing.innerHTML = "";
+      finalTyping.innerHTML = "";
+
+      setTimeout(() => {
+        teddy.classList.add("animate");
+      }, 2000);
+
+      setTimeout(() => {
+        bubble.classList.add("show");
+        const message = "hello sweetie";
+        typing.innerHTML = "";
+        [...message].forEach((char, index) => {
+          const span = document.createElement("span");
+          span.textContent = char;
+          span.style.animationDelay = `${index * 0.15}s`;
+          typing.appendChild(span);
+        });
+      }, 3500);
+
+      setTimeout(() => {
+        teddy.classList.add("hidden");
+        bubble.classList.remove("show");
+
+        frog.style.opacity = "1";
+        frog.style.transform = "translate(-50%, -50%) scale(1)";
+
+        setTimeout(() => {
+          frog.style.opacity = "0";
+          frog.style.transform = "translate(-50%, -50%) scale(0)";
+
+          finalContainer.classList.add("show");
+
+          const finalMessage = "i have send something for you..";
+          finalTyping.innerHTML = "";
+          [...finalMessage].forEach((char, index) => {
+            const span = document.createElement("span");
+            span.textContent = char;
+            span.style.animationDelay = `${index * 0.15}s`;
+            finalTyping.appendChild(span);
+          });
+
+          setTimeout(() => {
+            navStickers.classList.add("visible");
+          }, finalMessage.length * 150);
+        }, 3200);
+      }, 7000);
+
+    } else if (currentSlide === 1) {
+      blendSticker.style.opacity = "1";
+      newSticker.style.opacity = "0";
+      finalSlide2Sticker.style.opacity = "0";
+      document.getElementById("slide2").style.backgroundColor = "#fef6e4";
+      slide2ChatBubble.style.opacity = 0;
+      slide2ChatBubble.style.pointerEvents = "none";
+
+      setTimeout(() => {
+        blendSticker.style.opacity = "0";
+        document.getElementById("slide2").style.backgroundColor = "pink";
+
+        let secondPlayCount = 0;
+        function playSecondSticker() {
+          newSticker.style.opacity = "1";
+          setTimeout(() => {
+            newSticker.style.opacity = "0";
+            secondPlayCount++;
+            if (secondPlayCount < 2) {
+              setTimeout(playSecondSticker, 300);
+            } else {
+              setTimeout(() => {
+                document.getElementById("slide2").style.backgroundColor = "#fef6e4";
+                finalSlide2Sticker.style.opacity = "1";
+                setTimeout(() => {
+                  slide2ChatBubble.style.opacity = 1;
+                  slide2ChatBubble.style.pointerEvents = "auto";
+                }, 700);
+              }, 300);
+            }
+          }, 2000);
+        }
+        playSecondSticker();
+      }, 3000);
+
+    } else if (currentSlide === 2) {
+      slide3Sticker.style.cursor = "pointer";
+    } else if (currentSlide === 3) {
+      navStickers4.classList.add('visible');
+    } else if (currentSlide === 4) {
+      navStickers4.classList.remove('visible'); // hide nav buttons in slide 4
+    } else if (currentSlide === 5) {
+      navStickers4.classList.remove('visible'); // hide nav buttons in slide 5
+    }
+  }
+
+  function changeSlide(n) {
+    showSlide(currentSlide + n);
+  }
+
+  finalSlide2Sticker.addEventListener("click", () => {
+    showSlide(2);
+  });
+
+  slide3Sticker.addEventListener("click", () => {
+    showSlide(3);
+  });
+
+  slide2ChatBubble.addEventListener("click", () => {
+    showSlide(2);
+  });
+
+  prevBtn.addEventListener("click", () => {
+    changeSlide(-1);
+  });
+  nextBtn.addEventListener("click", () => {
+    changeSlide(1);
+  });
+
+  prevBtn4.addEventListener("click", () => {
+    changeSlide(-1);
+  });
+  nextBtn4.addEventListener("click", () => {
+    changeSlide(1);
+  });
+
+</script>
+
+</body>
+</html>  
